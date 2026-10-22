@@ -111,5 +111,3 @@ A diretiva `[org 0x7c00]` da etapa 003 informa ao NASM em que endereço o códig
 - **Sem script de build:** cada etapa é montada à mão com o `nasm`.
 
 ---
-
-Desenvolvido por [@RafaelRodriguesMagdaleno](https://github.com/RafaelRodriguesMagdaleno).
