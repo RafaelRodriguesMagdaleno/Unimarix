@@ -1,5 +1,5 @@
 mov ah, 0x0e ; valor hexa do serviço 14 da bios (imprime caracteres)
-mv al, 'U' ; código ASCII da letra colocado no registrador
+mov al, 'U' ; código ASCII da letra colocado no registrador
 int 0x10 ; Interrupção 10 hexa chama os serviços de video da bios
 mov al, 'n'
 int 0x10
