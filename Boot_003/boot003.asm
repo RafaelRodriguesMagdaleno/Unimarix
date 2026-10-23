@@ -2,8 +2,8 @@
 mov ah, 0x0e
 int 0x10
 
-;mov al, [segredo]
-;int 0x10
+mov al, [segredo]
+int 0x10
 
 jmp $
 
