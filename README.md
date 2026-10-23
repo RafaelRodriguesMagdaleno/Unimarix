@@ -1,6 +1,6 @@
 # Unimarix
 
-Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real, 16 bits)**, começando pelo setor de boot. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), feito no Ubuntu Linux com NASM e QEMU.
+Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real, 16 bits)**, começando pelo setor de boot. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
 
 > **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa. Cada pasta `Boot_00X` é uma etapa do estudo.
 
@@ -10,8 +10,9 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 
 - [Etapas](#etapas)
 - [Estrutura do repositório](#estrutura-do-repositório)
-- [Requisitos](#requisitos)
-- [Como compilar e executar](#como-compilar-e-executar)
+- [Linux ou Windows: o que muda](#linux-ou-windows-o-que-muda)
+- [Como rodar no Linux](#como-rodar-no-linux)
+- [Como rodar no Windows](#como-rodar-no-windows)
 - [Como funciona um boot sector](#como-funciona-um-boot-sector)
 - [Lendo dados da memória (etapa 003)](#lendo-dados-da-memória-etapa-003)
 - [A pilha (etapa 004)](#a-pilha-etapa-004)
@@ -49,37 +50,94 @@ Unimarix/
 └── SECURITY.md        # texto da licença MIT
 ```
 
-Cada `.bin` é gerado a partir do `.asm` da mesma pasta com o comando da seção abaixo. Sempre que um `.asm` mudar, gere o `.bin` de novo antes de fazer o commit, para os dois não ficarem dessincronizados.
+Cada `.bin` é gerado a partir do `.asm` da mesma pasta com o comando da seção abaixo, e os quatro versionados são idênticos, byte a byte, aos gerados pelos fontes atuais. Sempre que um `.asm` mudar, gere o `.bin` de novo antes de fazer o commit, para os dois não ficarem dessincronizados.
 
-## Requisitos
+## Linux ou Windows: o que muda
 
-- Linux (o projeto é desenvolvido no Ubuntu)
+**O código Assembly é o mesmo nos dois sistemas.** Um boot sector não roda "no Linux" nem "no Windows": ele roda direto no processador, antes de existir qualquer sistema operacional. Neste projeto, quem faz o papel do computador é o QEMU, que emula um PC x86 com BIOS. O sistema instalado na sua máquina só serve para duas coisas:
+
+1. **Montar** o `.asm` em `.bin` com o NASM.
+2. **Abrir** o QEMU apontando para esse `.bin`.
+
+O `.bin` gerado é o mesmo, byte a byte, no Linux e no Windows. O que muda entre os dois é só a instalação das ferramentas e a forma de digitar os caminhos.
+
+Ferramentas usadas:
+
 - [NASM](https://www.nasm.us/), para montar o código Assembly
 - [QEMU](https://www.qemu.org/), para emular um PC x86 e dar boot na imagem
 
-No Ubuntu:
+> O `-f bin` usado nos comandos abaixo é obrigatório: a BIOS executa o setor direto como código de máquina, então o arquivo não pode ter nenhum formato de executável (ELF no Linux, PE/`.exe` no Windows) em volta.
+
+## Como rodar no Linux
+
+Testado no Ubuntu com NASM 2.16.01 e QEMU 8.2.2.
+
+**1. Instalar as ferramentas:**
 
 ```bash
 sudo apt install nasm qemu-system-x86
 ```
 
-Testado com NASM 2.16.01 e QEMU 8.2.2.
-
-## Como compilar e executar
-
-Na raiz do repositório, para a etapa 002 (as outras seguem o mesmo padrão):
+**2. Montar e executar**, na raiz do repositório. O exemplo usa a etapa 002, e as outras seguem o mesmo padrão:
 
 ```bash
-# 1. Montar o código em binário puro (sem cabeçalho de executável)
+# Montar o código em binário puro (sem cabeçalho de executável)
 nasm -f bin Boot_002/boot002.asm -o Boot_002/boot002.bin
 
-# 2. Dar boot no binário como se fosse um disco
+# Dar boot no binário como se fosse um disco
 qemu-system-x86_64 -drive format=raw,file=Boot_002/boot002.bin
 ```
 
 Resultado esperado da etapa 002: depois das mensagens da BIOS e de `Booting from Hard Disk...`, aparece `Unimarix v0.1` e o sistema fica parado. Para sair, feche a janela do QEMU.
 
-> O `-f bin` é obrigatório: a BIOS executa o setor direto como código de máquina, então o arquivo não pode ter nenhum formato de executável (ELF etc.) em volta.
+## Como rodar no Windows
+
+> Os passos desta seção ainda não foram testados no Windows. Os comandos e o resultado esperado são os mesmos da seção do Linux.
+
+Há dois caminhos: instalar as ferramentas direto no Windows (opção A) ou usar o Ubuntu dentro do Windows pelo WSL (opção B).
+
+### Opção A: direto no Windows (PowerShell)
+
+**1. Instalar as ferramentas** com o `winget`, o gerenciador de pacotes do Windows 10 e 11:
+
+```powershell
+winget install --id NASM.NASM -e
+winget install --id SoftwareFreedomConservancy.QEMU -e
+```
+
+Se preferir instalar à mão, os instaladores estão em [nasm.us](https://www.nasm.us/) e [qemu.org/download](https://www.qemu.org/download/#windows).
+
+**2. Conferir se os comandos são reconhecidos.** Feche e abra o PowerShell de novo e rode:
+
+```powershell
+nasm -v
+qemu-system-x86_64 --version
+```
+
+Se algum der *"não é reconhecido como nome de cmdlet"*, a pasta do programa não está no `PATH`. Nesse caso:
+
+- Abra **Editar as variáveis de ambiente do sistema** → **Variáveis de Ambiente** → em `Path`, clique em **Editar** → **Novo**.
+- Adicione a pasta de instalação do QEMU (por padrão, `C:\Program Files\qemu`) e a pasta onde foi instalado o `nasm.exe`.
+- Feche e abra o PowerShell de novo.
+
+**3. Montar e executar**, na raiz do repositório:
+
+```powershell
+nasm -f bin Boot_002\boot002.asm -o Boot_002\boot002.bin
+qemu-system-x86_64 -drive format=raw,file=Boot_002\boot002.bin
+```
+
+A única diferença em relação ao Linux é a barra invertida (`\`) nos caminhos.
+
+### Opção B: Ubuntu no Windows com WSL
+
+O WSL roda um Ubuntu dentro do Windows. Com ele, os passos da seção [Como rodar no Linux](#como-rodar-no-linux) funcionam sem nenhuma mudança.
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Depois de reiniciar e criar o usuário do Ubuntu, abra o terminal do Ubuntu e siga a seção do Linux. Para a janela do QEMU aparecer, o WSL precisa ter suporte a aplicativos gráficos (WSLg), que já vem no Windows 11.
 
 ## Como funciona um boot sector
 
