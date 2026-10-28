@@ -19,11 +19,11 @@ inicio:
     je fim ; JE = Jump if Equal (Pula se igual)
     ; caso contrario (não é zero), ainda existem caracteres
 
-    mov ab, 0x0e ; Código do serviço da bios de impressão
+    mov ah, 0x0e ; Código do serviço da bios de impressão
     int 0x10 ; chama a bios e imprime o caractere
 
     ; incrementamos o endereço para apontar para o próximo caractere
-    add bx, I
+    add bx, 1   ; <-- corrigido (era "I")
     jmp inicio ; volta ao início (Loop)
 
 fim:
