@@ -32,3 +32,16 @@ fim:
 
     popa ; restaurando os valores originais destes registradores
     ret ; retorna ao código onde "imprime" foi chamado
+
+imprime_quebra:
+
+    pusha
+    mov ah, 0x0e
+    ;;Hexa para quebrar de linha (line feed) da tabela ASCII
+    mov al, 0x0a
+    int 0x10
+    ; Hexa para retorno de carro (carriage return) na ASCII
+    mov al, 0x0d
+    int 0x10
+    popa
+    ret
