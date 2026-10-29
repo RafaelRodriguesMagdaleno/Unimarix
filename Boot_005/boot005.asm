@@ -12,9 +12,12 @@ call imprime
 mov bx, mensagem3
 call imprime
 
+
+
 jmp $
 
 %include "../Imprime_Asm/imprime.asm"
+%include "../Imprime_Hexa_Asm/imprime_hexa.asm"
 
 mensagem1: db "Bem-vindo(a) ao Unimarix 0.1", 0
 mensagem2: db "Sistema Operacional da Computação 6A", 0
