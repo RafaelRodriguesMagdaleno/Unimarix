@@ -42,3 +42,19 @@ hexaLoop:
     jmp passo2
 
 passo2:
+
+    ; Bx aponta inicialmente para a ultima posição da string
+    mov bx, STRING_SAIDA + 5 
+
+    ; Subtraimos o contador em CX de BX para econtrar a posição exata do caracter atual
+    sub bx, cx
+
+    ;Copia o caractere ASCII em AL para o local apontado por BX
+    mov [bx], al
+    
+    ; "deslocamos" o valor em DX 4 bits para a direita isso faz com que "joguemos fora" o último dígito (que já foi convertido)
+    shr dx, 4 ; SHR : Shift Right
+
+
+; Já deixamos reservado um espaço na memória onde colocaremos a string com os digitos hexa
+STRING_SAIDA: db "0x000", 0
