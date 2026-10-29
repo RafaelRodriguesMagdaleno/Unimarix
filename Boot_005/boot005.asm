@@ -12,7 +12,8 @@ call imprime
 mov bx, mensagem3
 call imprime
 
-
+mov dx, 0xCAFE
+call imprime
 
 jmp $
 
