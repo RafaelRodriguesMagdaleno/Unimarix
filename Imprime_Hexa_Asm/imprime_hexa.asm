@@ -54,6 +54,16 @@ passo2:
     
     ; "deslocamos" o valor em DX 4 bits para a direita isso faz com que "joguemos fora" o último dígito (que já foi convertido)
     shr dx, 4 ; SHR : Shift Right
+    add CX, 1 ; Incrementa o contador em 1
+    jmp hex_loop ; saltamos para o inicio do hex_loop
+
+fim_hexa ; terminando a conversão
+
+    ;Colocamos o endereço da string criado em BX
+    mov bx, STRING_SAIDA
+    call imprime ; chamamos a função imprime
+    popa ; restaurando os registradores
+    ret ; encerramos a função
 
 
 ; Já deixamos reservado um espaço na memória onde colocaremos a string com os digitos hexa
