@@ -9,4 +9,36 @@ imprime_hexa:
 ; Na tabela ASCII, o caractere para o número 0 é designado pelo valor 0x30, o caractere para 1 é o 0x31 e assim sucessivamente até o 0x39, referente ao 9
 ; Já o caractere "A" é indicado pelo valor 0x41, "B" por 0x42 e assim sucessivamente á 0x46 que se refere ao Função
 
-hexa loop:
+imprimeHexa:
+    pusha
+    mov cx, 0 ; CX servirá com um contador de impressão
+
+; na tabela ASCII, o charactere para o número 0 é designado pelo valor 0x30
+; o caractere para 1 é 0x31 e assim sucessivamente até 0x39, referente ao 9.
+; já os caracteres que representam letras são designados pelo seguinte padrão:
+; 0x4<posição>, indo de 0x41 ('A') até 0x46 ('F')
+
+hexaLoop:
+    cmp cx, 4 ; se CX == 4, convertemos tudo
+    je fim_hexa ; pula para fimHexa se CX == 4
+
+    mov ax, dx ; copiando o valor hexa de DX para AX
+    and ax, 0x000f ; fazemos um AND bit a bit em AX
+    ; dessa forma, vai "sobrar" em AX apenas o último valor
+
+    add al, 0x30 ; adicionamos 30 ao valor que sobrou
+    
+    ; se o resultado for menor ou igual a 39, então trata-se de um valor entre 0 e 9
+    ; assim, vamos para o passo 2
+    cmp al, 0x39
+    jle passo2 ; jump if less or equal
+
+
+    ; caso contrário, continua normalmente
+    ; primeiro adicionamos 7
+    add al, 7
+
+    ;agora vamos ao passo 2
+    jmp passo2
+
+passo2:
