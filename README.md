@@ -2,7 +2,7 @@
 
 Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real, 16 bits)**, começando pelo setor de boot. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
 
-> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa. Cada pasta `Boot_00X` é uma etapa do estudo.
+> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto e de números em hexadecimal). Cada pasta `Boot_00X` é uma etapa do estudo.
 
 ---
 
@@ -16,6 +16,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 - [Como funciona um boot sector](#como-funciona-um-boot-sector)
 - [Lendo dados da memória (etapa 003)](#lendo-dados-da-memória-etapa-003)
 - [A pilha (etapa 004)](#a-pilha-etapa-004)
+- [Rotinas reutilizáveis (etapa 005)](#rotinas-reutilizáveis-etapa-005)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Licença](#licença)
 
@@ -29,28 +30,33 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 | 002 | `Boot_002/boot002.asm` | Escreve **`Unimarix v0.1`** na tela, um caractere por vez, usando o serviço de teletipo da BIOS (`int 0x10`, `AH = 0x0E`). | Concluída |
 | 003 | `Boot_003/boot003.asm` | Leitura de dados da memória: com `[org 0x7c00]`, lê o byte do rótulo `segredo` (`db "A"`) com `mov al, [segredo]` e o imprime. Na tela aparece **`UA`**: o `A` vem do `segredo`, e o `U` vem de uma chamada a `int 0x10` feita antes de definir `AL` (ver [Limitações conhecidas](#limitações-conhecidas)). | Concluída, com ressalva |
 | 004 | `Boot_004/boot004.asm` | Uso da pilha: posiciona `BP`/`SP` em `0x8000`, empilha `'A'`, `'B'` e `'C'` com `push` e depois desempilha com `pop`, imprimindo cada valor. Na tela aparece **`CBA`**, a ordem inversa da que foi empilhada. | Concluída |
+| 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, chama `imprime` com `call` para escrever três mensagens e tenta mostrar o valor `0xCAFE` em hexadecimal. Hoje as mensagens saem emendadas na mesma linha e o valor hexadecimal não aparece (ver [Limitações conhecidas](#limitações-conhecidas)). | Em andamento |
 
 ## Estrutura do repositório
 
 ```
 Unimarix/
 ├── Boot_001/
-│   ├── boot001.asm    # código-fonte
-│   └── boot001.bin    # imagem de 512 bytes gerada pelo NASM
+│   └── boot001.asm
 ├── Boot_002/
-│   ├── boot002.asm
-│   └── boot002.bin
+│   └── boot002.asm
 ├── Boot_003/
-│   ├── boot003.asm
-│   └── boot003.bin
+│   └── boot003.asm
 ├── Boot_004/
-│   ├── boot004.asm
-│   └── boot004.bin
+│   └── boot004.asm
+├── Boot_005/
+│   └── boot005.asm         # usa as duas rotinas abaixo via %include
+├── Imprime_Asm/
+│   └── imprime.asm         # rotinas imprime e imprime_quebra
+├── Imprime_Hexa_Asm/
+│   └── imprime_hexa.asm    # rotina imprime_hexa (depende de imprime)
 ├── README.md
-└── SECURITY.md        # texto da licença MIT
+└── SECURITY.md             # texto da licença MIT
 ```
 
-Cada `.bin` é gerado a partir do `.asm` da mesma pasta com o comando da seção abaixo, e os quatro versionados são idênticos, byte a byte, aos gerados pelos fontes atuais. Sempre que um `.asm` mudar, gere o `.bin` de novo antes de fazer o commit, para os dois não ficarem dessincronizados.
+O repositório guarda só o código-fonte. Os `.bin` (imagens de 512 bytes) não são versionados: gere cada um localmente com os comandos das seções abaixo.
+
+As pastas `Imprime_Asm` e `Imprime_Hexa_Asm` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
 
 ## Linux ou Windows: o que muda
 
@@ -78,7 +84,7 @@ Testado no Ubuntu com NASM 2.16.01 e QEMU 8.2.2.
 sudo apt install nasm qemu-system-x86
 ```
 
-**2. Montar e executar**, na raiz do repositório. O exemplo usa a etapa 002, e as outras seguem o mesmo padrão:
+**2. Montar e executar**, na raiz do repositório. O exemplo usa a etapa 002, e as etapas 001 a 004 seguem o mesmo padrão:
 
 ```bash
 # Montar o código em binário puro (sem cabeçalho de executável)
@@ -89,6 +95,14 @@ qemu-system-x86_64 -drive format=raw,file=Boot_002/boot002.bin
 ```
 
 Resultado esperado da etapa 002: depois das mensagens da BIOS e de `Booting from Hard Disk...`, aparece `Unimarix v0.1` e o sistema fica parado. Para sair, feche a janela do QEMU.
+
+**Etapa 005: monte de dentro da pasta dela.** Os `%include` usam caminhos relativos (`../Imprime_Asm/imprime.asm`), e o NASM resolve esses caminhos a partir da pasta onde o comando é executado. Rodando da raiz, ele dá o erro `unable to open include file`.
+
+```bash
+cd Boot_005
+nasm -f bin boot005.asm -o boot005.bin
+qemu-system-x86_64 -drive format=raw,file=boot005.bin
+```
 
 ## Como rodar no Windows
 
@@ -127,7 +141,13 @@ nasm -f bin Boot_002\boot002.asm -o Boot_002\boot002.bin
 qemu-system-x86_64 -drive format=raw,file=Boot_002\boot002.bin
 ```
 
-A única diferença em relação ao Linux é a barra invertida (`\`) nos caminhos.
+A única diferença em relação ao Linux é a barra invertida (`\`) nos caminhos. A etapa 005 também precisa ser montada de dentro da pasta dela:
+
+```powershell
+cd Boot_005
+nasm -f bin boot005.asm -o boot005.bin
+qemu-system-x86_64 -drive format=raw,file=boot005.bin
+```
 
 ### Opção B: Ubuntu no Windows com WSL
 
@@ -201,10 +221,62 @@ int 0x10         ; imprime 'C'; depois o mesmo para 'B' e 'A'
 
 O endereço `0x8000` fica acima do boot sector (`0x7C00` a `0x7DFF`). Como a pilha cresce para baixo, sobra um espaço livre entre os dois e ela não sobrescreve o código.
 
+## Rotinas reutilizáveis (etapa 005)
+
+Até a etapa 004, cada caractere era impresso com um `mov al` e um `int 0x10` escritos à mão. A etapa 005 separa esse trabalho em rotinas que ficam em arquivos próprios e são coladas no boot sector pelo NASM:
+
+```nasm
+%include "../Imprime_Asm/imprime.asm"
+%include "../Imprime_Hexa_Asm/imprime_hexa.asm"
+```
+
+O `%include` copia o conteúdo do arquivo naquele ponto, na hora de montar. O resultado continua sendo um único `.bin` de 512 bytes. As rotinas ficam depois do `jmp $`, para a CPU nunca chegar nelas "por acaso", só via `call`.
+
+### `call` e `ret`
+
+`call imprime` empilha o endereço da instrução seguinte e salta para `imprime`. No final da rotina, `ret` desempilha esse endereço e volta para ele. É a mesma pilha da etapa 004, agora usada pelo próprio processador.
+
+Cada rotina começa com `pusha` e termina com `popa`. Essas instruções guardam e restauram os registradores de uso geral (`AX`, `CX`, `DX`, `BX`, `SP`, `BP`, `SI`, `DI`), para que quem chamou a rotina encontre os registradores do jeito que deixou.
+
+### `imprime` e `imprime_quebra` (`Imprime_Asm/imprime.asm`)
+
+| Rotina | Entrada | O que faz |
+|--------|---------|-----------|
+| `imprime` | `BX` = endereço de uma string terminada em `0` | Lê um caractere por vez (`mov al, [bx]`), para quando encontra o `0` e imprime os outros com `int 0x10`. |
+| `imprime_quebra` | nenhuma | Imprime `0x0A` (*line feed*, desce uma linha) e `0x0D` (*carriage return*, volta para o início da linha). |
+
+As strings precisam terminar com o byte `0`, que marca onde elas acabam:
+
+```nasm
+mensagem1: db "Bem-vindo(a) ao Unimarix 0.1", 0
+```
+
+### `imprime_hexa` (`Imprime_Hexa_Asm/imprime_hexa.asm`)
+
+Recebe um valor de 16 bits em `DX` e o imprime no formato `0x0000`. Ela depende de `imprime`, então o arquivo `imprime.asm` precisa ser incluído junto.
+
+Cada dígito hexadecimal corresponde a 4 bits (um *nibble*). A rotina repete quatro vezes:
+
+1. `and ax, 0x000f` isola os 4 bits mais à direita de `DX`.
+2. Soma `0x30` para virar caractere ASCII: `0` a `9` viram `'0'` a `'9'` (`0x30` a `0x39`).
+3. Se o resultado passou de `0x39`, soma mais `7` para pular até `'A'` a `'F'` (`0x41` a `0x46`).
+4. Grava o caractere em `STRING_SAIDA`, começando pela última posição e indo para a esquerda.
+5. `shr dx, 4` desloca `DX` 4 bits para a direita, descartando o dígito que acabou de ser convertido.
+
+Exemplo com `DX = 0xCAFE`: os dígitos saem na ordem `E`, `F`, `A`, `C`, são gravados de trás para frente, e a string fica `"0xCAFE"`. No fim, a rotina chama `imprime` com `BX` apontando para essa string.
+
 ## Limitações conhecidas
 
 - **Chamada sobrando na etapa 003:** a terceira linha do código (`int 0x10`) roda antes de qualquer `mov al`, então imprime o valor que tiver sobrado em `AL`. No QEMU 8.2.2 (SeaBIOS 1.16.3) esse valor sai como `U`, por isso a tela mostra `UA` em vez de só `A`. Em outra BIOS pode sair outro caractere. Para corrigir, basta apagar essa linha.
-- **Registradores de segmento não inicializados:** nenhuma etapa define `DS`, `ES` ou `SS`. Na etapa 003, o endereço real lido por `mov al, [segredo]` é `DS:segredo`. Na etapa 004, o endereço real da pilha é `SS:SP`. Os dois funcionam no QEMU porque a BIOS deixa `DS` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS` e `SS` no início do código.
+- **Etapa 005 ainda não mostra o resultado pretendido.** Testada no QEMU, a tela mostra as três mensagens emendadas, "Computação" com caracteres estranhos e a terceira mensagem repetida no lugar de `0xCAFE`. São três problemas separados:
+  - **O valor hexadecimal chama a rotina errada.** Depois de `mov dx, 0xCAFE` vem `call imprime`, não `call imprime_hexa`. Como `BX` ainda aponta para `mensagem3`, ela é impressa de novo. Troque para `call imprime_hexa`.
+  - **Falta a quebra de linha.** A rotina `imprime_quebra` existe, mas nunca é chamada. Para cada mensagem sair numa linha, acrescente `call imprime_quebra` depois de cada `call imprime`.
+  - **Acentos não aparecem certo.** O `.asm` está salvo em UTF-8, em que `ç` e `ã` ocupam 2 bytes cada. A BIOS imprime cada byte como um caractere da tabela da placa de vídeo (code page 437), que não é UTF-8. Por isso aparece lixo no lugar dos acentos. Use só caracteres ASCII nas mensagens, por exemplo `Computacao`.
+
+  Com essas três mudanças, testadas no QEMU, aparece cada mensagem numa linha e `0xCAFE` na última.
+- **Caminhos dos `%include` dependem de onde o NASM é executado:** a etapa 005 só monta de dentro da pasta `Boot_005` (ver [Como rodar no Linux](#como-rodar-no-linux)).
+- **Registradores de segmento não inicializados:** nenhuma etapa define `DS`, `ES` ou `SS`. Nas etapas 003 e 005, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`) vêm de `DS`. Nas etapas 004 e 005, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS` e `SS` no início do código.
+- **Espaço:** a etapa 005 já ocupa 212 dos 510 bytes disponíveis no boot sector. Sobram 298 bytes para código e mensagens.
 - **Só testado em emulador:** as imagens foram testadas no QEMU, não em hardware real.
 - **Sem script de build:** cada etapa é montada à mão com o `nasm`.
 
