@@ -36,3 +36,21 @@ lerDisco:
     jne erro_setor ; JNE, se não for igual, pula para o tratamento
     popa ; se não houver erro, desempilha e encerra
     ret
+
+erro_disco:
+    mov bx; Mensagem de erro disco
+    call imprime
+    call imprime_quebra
+    mov  dh, ah ; Ah contem o codigo de erro
+    call imprime_hexa ; imprime o codigo de erro na tela
+    jmp loop disco
+
+erro_setor:
+    mov bx ; Mensagem Erro setor
+    call imprime
+
+loop disco:
+    jmp $
+
+MENSAGEM_ERRO_DISCO db "Erro de leitura"; 0
+MENSAGEM_ERRO_SETOR: db "Qtd incorreta de setores lidos", 0
