@@ -2,7 +2,7 @@
 
 Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real, 16 bits)**, começando pelo setor de boot. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
 
-> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto e de números em hexadecimal). Cada pasta `Boot_00X` é uma etapa do estudo.
+> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto, impressão de números em hexadecimal e leitura de setores do disco). Cada pasta `Boot_00X` é uma etapa do estudo.
 
 ---
 
@@ -17,6 +17,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 - [Lendo dados da memória (etapa 003)](#lendo-dados-da-memória-etapa-003)
 - [A pilha (etapa 004)](#a-pilha-etapa-004)
 - [Rotinas reutilizáveis (etapa 005)](#rotinas-reutilizáveis-etapa-005)
+- [Lendo setores do disco (etapa 007)](#lendo-setores-do-disco-etapa-007)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Licença](#licença)
 
@@ -31,6 +32,9 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 | 003 | `Boot_003/boot003.asm` | Leitura de dados da memória: com `[org 0x7c00]`, lê o byte do rótulo `segredo` (`db "A"`) com `mov al, [segredo]` e o imprime. Na tela aparece **`UA`**: o `A` vem do `segredo`, e o `U` vem de uma chamada a `int 0x10` feita antes de definir `AL` (ver [Limitações conhecidas](#limitações-conhecidas)). | Concluída, com ressalva |
 | 004 | `Boot_004/boot004.asm` | Uso da pilha: posiciona `BP`/`SP` em `0x8000`, empilha `'A'`, `'B'` e `'C'` com `push` e depois desempilha com `pop`, imprimindo cada valor. Na tela aparece **`CBA`**, a ordem inversa da que foi empilhada. | Concluída |
 | 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, chama `imprime` com `call` para escrever três mensagens e tenta mostrar o valor `0xCAFE` em hexadecimal. Hoje as mensagens saem emendadas na mesma linha e o valor hexadecimal não aparece (ver [Limitações conhecidas](#limitações-conhecidas)). | Em andamento |
+| 007 | `Boot_007/boot007.asm` | Leitura de disco: guarda a unidade de boot que a BIOS entrega em `DL`, usa a rotina `lerDisco` para carregar os setores 2 e 3 dessa unidade no endereço `0x9000` e imprime, em hexadecimal, a primeira word de cada setor. Os dois setores são gravados no próprio `.asm`, logo depois da assinatura. Na tela aparecem **`0xDADA`** e **`0xFACE`**, em linhas separadas. | Concluída |
+
+Não há pasta `Boot_006` no repositório: a numeração passa da etapa 005 direto para a 007.
 
 ## Estrutura do repositório
 
@@ -45,18 +49,22 @@ Unimarix/
 ├── Boot_004/
 │   └── boot004.asm
 ├── Boot_005/
-│   └── boot005.asm         # usa as duas rotinas abaixo via %include
+│   └── boot005.asm         # usa imprime e imprime_hexa via %include
+├── Boot_007/
+│   └── boot007.asm         # usa imprime, imprime_hexa e lerDisco via %include
 ├── Imprime_Asm/
 │   └── imprime.asm         # rotinas imprime e imprime_quebra
 ├── Imprime_Hexa_Asm/
 │   └── imprime_hexa.asm    # rotina imprime_hexa (depende de imprime)
+├── Ler_Disco/
+│   └── ler_disco.asm       # rotina lerDisco (depende de imprime e imprime_hexa)
 ├── README.md
 └── SECURITY.md             # texto da licença MIT
 ```
 
-O repositório guarda só o código-fonte. Os `.bin` (imagens de 512 bytes) não são versionados: gere cada um localmente com os comandos das seções abaixo.
+O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 512 bytes nas etapas 001 a 005, 1536 bytes na 007) não são versionados: gere cada um localmente com os comandos das seções abaixo.
 
-As pastas `Imprime_Asm` e `Imprime_Hexa_Asm` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
+As pastas `Imprime_Asm`, `Imprime_Hexa_Asm` e `Ler_Disco` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
 
 ## Linux ou Windows: o que muda
 
@@ -96,7 +104,7 @@ qemu-system-x86_64 -drive format=raw,file=Boot_002/boot002.bin
 
 Resultado esperado da etapa 002: depois das mensagens da BIOS e de `Booting from Hard Disk...`, aparece `Unimarix v0.1` e o sistema fica parado. Para sair, feche a janela do QEMU.
 
-**Etapa 005: monte de dentro da pasta dela.** Os `%include` usam caminhos relativos (`../Imprime_Asm/imprime.asm`), e o NASM resolve esses caminhos a partir da pasta onde o comando é executado. Rodando da raiz, ele dá o erro `unable to open include file`.
+**Etapas 005 em diante: monte de dentro da pasta da etapa.** Os `%include` usam caminhos relativos (`../Imprime_Asm/imprime.asm`), e o NASM resolve esses caminhos a partir da pasta onde o comando é executado. Rodando da raiz, ele dá o erro `unable to open include file`.
 
 ```bash
 cd Boot_005
@@ -141,7 +149,7 @@ nasm -f bin Boot_002\boot002.asm -o Boot_002\boot002.bin
 qemu-system-x86_64 -drive format=raw,file=Boot_002\boot002.bin
 ```
 
-A única diferença em relação ao Linux é a barra invertida (`\`) nos caminhos. A etapa 005 também precisa ser montada de dentro da pasta dela:
+A única diferença em relação ao Linux é a barra invertida (`\`) nos caminhos. Da etapa 005 em diante, monte de dentro da pasta da etapa (exemplo com a 005):
 
 ```powershell
 cd Boot_005
@@ -265,6 +273,59 @@ Cada dígito hexadecimal corresponde a 4 bits (um *nibble*). A rotina repete qua
 
 Exemplo com `DX = 0xCAFE`: os dígitos saem na ordem `E`, `F`, `A`, `C`, são gravados de trás para frente, e a string fica `"0xCAFE"`. No fim, a rotina chama `imprime` com `BX` apontando para essa string.
 
+## Lendo setores do disco (etapa 007)
+
+A BIOS só carrega o primeiro setor do disco (o boot sector), e 512 bytes acabam rápido. Para ir além, o próprio boot sector precisa pedir à BIOS que leia os próximos setores para a memória. É isso que a rotina `lerDisco` (`Ler_Disco/ler_disco.asm`) faz, com o serviço `0x02` da interrupção `0x13`.
+
+### O que a BIOS espera em cada registrador
+
+| Registrador | Valor em `lerDisco` | Significado |
+|-------------|---------------------|-------------|
+| `AH` | `0x02` | Serviço "ler setores" |
+| `AL` | valor de `DH` na chamada | Quantos setores ler |
+| `CH` | `0x00` | Cilindro 0 |
+| `DH` | `0x00` | Cabeça 0 |
+| `CL` | `0x02` | Setor inicial. A contagem começa em 1, e o setor 1 é o próprio boot sector, então a leitura começa logo depois dele |
+| `DL` | definido por quem chama | Unidade: `0x00` é o primeiro disquete, `0x80` o primeiro disco rígido |
+| `ES:BX` | definido por quem chama | Endereço da memória onde os dados lidos serão gravados |
+
+Na etapa 007, quem chama coloca `BX = 0x9000` e `DH = 2`, ou seja, pede 2 setores (1024 bytes) gravados a partir de `0x9000`. Em `DL` vai a unidade de onde o boot sector foi carregado.
+
+### De qual unidade ler
+
+Quando a BIOS passa o controle para o boot sector, ela deixa em `DL` o número da unidade de onde ele foi carregado. A primeira instrução da etapa 007 guarda esse valor numa variável, antes que algum outro código mude `DL`:
+
+```nasm
+mov [BOOT_DRIVE], dl   ; guarda a unidade de boot
+...
+mov dl, [BOOT_DRIVE]   ; e usa na leitura
+call lerDisco
+
+BOOT_DRIVE: db 0       ; 1 byte reservado para a variável
+```
+
+Assim, a leitura funciona tanto no disco rígido (`0x80`, como no QEMU) quanto em outra unidade de boot, sem número fixo no código.
+
+### Como a BIOS responde
+
+- Se a leitura falhar, a BIOS liga o *carry flag* (`CF`) e coloca um código de erro em `AH`. A rotina testa isso com `jc erro_disco`.
+- Se der certo, `AL` volta com a quantidade de setores que foram de fato lidos. A rotina compara esse número com o que foi pedido e, se for diferente, vai para `erro_setor`.
+
+No caso de erro de leitura, a rotina imprime `"Erro de leitura"` e depois chama `imprime_hexa` com `DH` = código de erro. Como `DL` ainda tem o número da unidade, a tela mostra os dois juntos. Por exemplo, `0x0C80` significa código de erro `0x0C` na unidade `0x80`.
+
+### Os setores lidos precisam existir na imagem
+
+O `lerDisco` lê os setores 2 e 3 **do mesmo disco** de onde a BIOS carregou o boot sector. No QEMU, esse disco é o próprio arquivo `.bin`. Se o `.bin` tivesse só 512 bytes, os setores 2 e 3 não existiriam e a leitura falharia com `Erro de leitura` / `0x0C80`. Por isso o `boot007.asm` grava dois setores de dados depois da assinatura `0xAA55`:
+
+```nasm
+dw 0xaa55
+
+times 256 dw 0xdada   ; setor 2: 256 words = 512 bytes
+times 256 dw 0xface   ; setor 3
+```
+
+Assim, o `boot007.bin` fica com 1536 bytes (3 setores), e não 512 como nas etapas anteriores. A BIOS continua carregando só o primeiro setor, e os outros dois são lidos pelo `lerDisco`. A etapa imprime `0xDADA` e `0xFACE`, a primeira word de cada setor lido.
+
 ## Limitações conhecidas
 
 - **Chamada sobrando na etapa 003:** a terceira linha do código (`int 0x10`) roda antes de qualquer `mov al`, então imprime o valor que tiver sobrado em `AL`. No QEMU 8.2.2 (SeaBIOS 1.16.3) esse valor sai como `U`, por isso a tela mostra `UA` em vez de só `A`. Em outra BIOS pode sair outro caractere. Para corrigir, basta apagar essa linha.
@@ -274,9 +335,9 @@ Exemplo com `DX = 0xCAFE`: os dígitos saem na ordem `E`, `F`, `A`, `C`, são gr
   - **Acentos não aparecem certo.** O `.asm` está salvo em UTF-8, em que `ç` e `ã` ocupam 2 bytes cada. A BIOS imprime cada byte como um caractere da tabela da placa de vídeo (code page 437), que não é UTF-8. Por isso aparece lixo no lugar dos acentos. Use só caracteres ASCII nas mensagens, por exemplo `Computacao`.
 
   Com essas três mudanças, testadas no QEMU, aparece cada mensagem numa linha e `0xCAFE` na última.
-- **Caminhos dos `%include` dependem de onde o NASM é executado:** a etapa 005 só monta de dentro da pasta `Boot_005` (ver [Como rodar no Linux](#como-rodar-no-linux)).
-- **Registradores de segmento não inicializados:** nenhuma etapa define `DS`, `ES` ou `SS`. Nas etapas 003 e 005, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`) vêm de `DS`. Nas etapas 004 e 005, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS` e `SS` no início do código.
-- **Espaço:** a etapa 005 já ocupa 212 dos 510 bytes disponíveis no boot sector. Sobram 298 bytes para código e mensagens.
+- **Caminhos dos `%include` dependem de onde o NASM é executado:** da etapa 005 em diante, monte de dentro da pasta da etapa (ver [Como rodar no Linux](#como-rodar-no-linux)).
+- **Registradores de segmento não inicializados:** nenhuma etapa define `DS`, `ES` ou `SS`. Nas etapas 003, 005 e 007, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`, `mov dx, [0x9000]`) vêm de `DS`. Na etapa 007, os setores lidos do disco são gravados em `ES:BX`. Nas etapas 004, 005 e 007, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS`, `ES` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS`, `ES` e `SS` no início do código.
+- **Espaço:** dos 510 bytes disponíveis no boot sector, a etapa 005 ocupa 212 e a etapa 007 ocupa 221. A partir da 007, o caminho para ter mais espaço é deixar no boot sector só o que for preciso para ler o resto do código do disco.
 - **Só testado em emulador:** as imagens foram testadas no QEMU, não em hardware real.
 - **Sem script de build:** cada etapa é montada à mão com o `nasm`.
 
