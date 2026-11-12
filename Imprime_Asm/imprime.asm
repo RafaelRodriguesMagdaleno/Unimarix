@@ -3,7 +3,7 @@
 ; ponto de entrada da "função"
 imprime:
 
-;push all: empilha os valores dos regs, AX, BX, CX, e DX
+;push all: empilha os valores dos regs AX, CX, DX, BX, SP, BP, SI e DI
 
     pusha
 
@@ -23,12 +23,12 @@ inicio:
     int 0x10 ; chama a bios e imprime o caractere
 
     ; incrementamos o endereço para apontar para o próximo caractere
-    add bx, 1   ; <-- corrigido (era "I")
+    add bx, 1
     jmp inicio ; volta ao início (Loop)
 
 fim:
 
-    ; popa = pop alt: desempilha os valores de AX, BX, CX e DX
+    ; popa = pop all: desempilha os valores salvos pelo pusha
 
     popa ; restaurando os valores originais destes registradores
     ret ; retorna ao código onde "imprime" foi chamado
