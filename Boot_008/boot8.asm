@@ -1,34 +1,32 @@
-; impressão de strings em modo protegido (32 bits)
+; primeira versão do boot sector que vai para 32 bits
+[org 0x7c00]
+mov bp, 0x9000 ; definição do endereço da base da pilha
+mov sp, bp ; definição do topo, tendo posição inicial igual ao inicio
 
-; Em 32 bits não podemos usar o int 0x10 da BIOS. Escrevemos direto na
-; memória de vídeo do modo texto, que começa em 0xb8000. Cada caractere
-; na tela ocupa 2 bytes: o código ASCII e a cor.
+; ainda em 16 bits, vamos imprimir algo usando a BIOS
+mov bx, MENSAGEM_EM_MODO_REAL
+call imprime
+
+; chamamos agora a rotina para mudar para 32 bits (modo32.asm)
+call mudar_para_modo_protegido
+
+jmp $ ; loop porque ainda não podemos carregar o kernel
+
+; inclusão de rotinas em outros arquivos
+%include "../Imprime_Asm/imprime.asm"
+%include "../Gdt32_Asm/gdt32.asm"
+%include "../Imprime32_Asm/imprime32.asm"
+%include "../Modo32_Asm/modo32.asm"
 
 [bits 32]
+; modo32.asm salta para cá depois de entrar no modo protegido
+INICIAR_MP:
+    mov ebx, MENSAGEM_EM_MODO_PROTEGIDO
+    call imprime_mp
+    jmp $
 
-MEMORIA_VIDEO equ 0xb8000
-BRANCO_NO_PRETO equ 0x0f ; byte de cor: fundo preto (0), texto branco (f)
+MENSAGEM_EM_MODO_REAL db "mensagem em modo real (16b)", 0
+MENSAGEM_EM_MODO_PROTEGIDO db "mensagem em modo protegido (32b)", 0
 
-; EBX deve conter o endereço da string terminada em 0
-; a string é escrita no canto superior esquerdo da tela
-imprime_mp:
-    pusha
-    mov edx, MEMORIA_VIDEO ; EDX aponta para a primeira posição da tela
-
-imprime_mp_loop:
-    mov al, [ebx]           ; caractere da string
-    mov ah, BRANCO_NO_PRETO ; cor do caractere
-
-    cmp al, 0 ; fim da string?
-    je imprime_mp_fim
-
-    mov [edx], ax ; grava caractere + cor na memória de vídeo
-
-    add ebx, 1 ; próximo caractere da string
-    add edx, 2 ; próxima posição da tela (2 bytes por caractere)
-
-    jmp imprime_mp_loop
-
-imprime_mp_fim:
-    popa
-    ret
+times 510-($-$$) db 0
+dw 0xaa55
