@@ -34,7 +34,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começan
 | 004 | `Boot_004/boot004.asm` | Uso da pilha: posiciona `BP`/`SP` em `0x8000`, empilha `'A'`, `'B'` e `'C'` com `push` e depois desempilha com `pop`, imprimindo cada valor. Na tela aparece **`CBA`**, a ordem inversa da que foi empilhada. | Concluída |
 | 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, escreve três mensagens com `call imprime`, uma por linha (`call imprime_quebra`), e mostra o valor `0xCAFE` com `call imprime_hexa`. | Concluída |
 | 007 | `Boot_007/boot007.asm` | Leitura de disco: guarda a unidade de boot que a BIOS entrega em `DL`, usa a rotina `lerDisco` para carregar os setores 2 e 3 dessa unidade no endereço `0x9000` e imprime, em hexadecimal, a primeira word de cada setor. Os dois setores são gravados no próprio `.asm`, logo depois da assinatura. Na tela aparecem **`0xDADA`** e **`0xFACE`**, em linhas separadas. | Concluída |
-| 008 | `Boot_008/boot008.asm` | Passagem para o modo protegido (32 bits): imprime uma mensagem ainda em modo real com `imprime` (BIOS), chama `mudar_para_modo_protegido` e, já em 32 bits, imprime uma segunda mensagem com `imprime_mp`, escrevendo direto na memória de vídeo. Na tela aparece `mensagem em modo real (16b)` abaixo de `Booting from Hard Disk...` e `mensagem em modo protegido (32b)` no canto superior esquerdo, por cima do texto da BIOS. | Concluída |
+| 008 | `Boot_008/boot8.asm` | Passagem para o modo protegido (32 bits): imprime uma mensagem ainda em modo real com `imprime` (BIOS), chama `mudar_para_modo_protegido` e, já em 32 bits, imprime uma segunda mensagem com `imprime_mp`, escrevendo direto na memória de vídeo. Na tela aparece `mensagem em modo real (16b)` abaixo de `Booting from Hard Disk...` e `mensagem em modo protegido (32b)` no canto superior esquerdo, por cima do texto da BIOS. | Concluída |
 
 Não há pasta `Boot_006` no repositório: a numeração passa da etapa 005 direto para a 007.
 
@@ -55,7 +55,7 @@ Unimarix/
 ├── Boot_007/
 │   └── boot007.asm         # usa imprime, imprime_hexa e lerDisco via %include
 ├── Boot_008/
-│   └── boot008.asm         # entra no modo protegido; usa imprime, gdt32, modo32 e imprime32
+│   └── boot8.asm           # entra no modo protegido; usa imprime, gdt32, modo32 e imprime32
 ├── Gdt32_Asm/
 │   └── gdt32.asm           # tabela de segmentos (GDT)
 ├── Imprime_Asm/
@@ -68,8 +68,8 @@ Unimarix/
 │   └── ler_disco.asm       # rotina lerDisco (depende de imprime e imprime_hexa)
 ├── Modo32_Asm/
 │   └── modo32.asm          # rotina mudar_para_modo_protegido (depende de gdt32)
-├── LICENSE                 # licença MIT
-└── README.md
+├── README.md
+└── SECURITY.md             # texto da licença MIT
 ```
 
 O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 1536 bytes na etapa 007 e 512 bytes nas outras) não são versionados: gere cada um localmente com os comandos das seções abaixo.
@@ -369,7 +369,7 @@ mov cr0, eax
 jmp SEG_CODIGO:iniciar_modo_protegido   ; 4. salto "longo"
 ```
 
-O salto longo do passo 4 troca o `CS` para o segmento de código da GDT e descarta as instruções que o processador já tinha lido adiantado em modo de 16 bits. Do outro lado do salto, já em `[bits 32]`, a rotina aponta `DS`, `SS`, `ES`, `FS` e `GS` para o segmento de dados, cria uma pilha nova em `0x90000` e chama `INICIAR_MP`, de volta no `boot008.asm`.
+O salto longo do passo 4 troca o `CS` para o segmento de código da GDT e descarta as instruções que o processador já tinha lido adiantado em modo de 16 bits. Do outro lado do salto, já em `[bits 32]`, a rotina aponta `DS`, `SS`, `ES`, `FS` e `GS` para o segmento de dados, cria uma pilha nova em `0x90000` e chama `INICIAR_MP`, de volta no `boot8.asm`.
 
 ### Imprimindo sem a BIOS (`imprime32.asm`)
 
@@ -394,6 +394,6 @@ A rotina recebe a string em `EBX` e grava caractere e cor a partir de `0xB8000`,
 
 ## Licença
 
-Distribuído sob a licença MIT. O texto completo está em [`LICENSE`](LICENSE).
+Distribuído sob a licença MIT. O texto completo está em [`SECURITY.md`](SECURITY.md).
 
 ---
