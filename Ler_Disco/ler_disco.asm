@@ -53,4 +53,3 @@ loop_disco:
 
 MENSAGEM_ERRO_DISCO: db "Erro de leitura", 0
 MENSAGEM_ERRO_SETOR: db "Qtd incorreta de setores lidos", 0
-MENSAGEM_ERRO_SETOR: db "Qtd incorreta de setores lidos", 0
