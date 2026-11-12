@@ -1,8 +1,8 @@
 # Unimarix
 
-Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real, 16 bits)**, começando pelo setor de boot. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
+Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começando pelo setor de boot em modo real (16 bits) e partindo para o modo protegido (32 bits). Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
 
-> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto, impressão de números em hexadecimal e leitura de setores do disco). Cada pasta `Boot_00X` é uma etapa do estudo.
+> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto, impressão de números em hexadecimal e leitura de setores do disco). Na etapa 008, o boot sector já sai do modo real e entra no modo protegido de 32 bits. Cada pasta `Boot_00X` é uma etapa do estudo.
 
 ---
 
@@ -18,6 +18,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 - [A pilha (etapa 004)](#a-pilha-etapa-004)
 - [Rotinas reutilizáveis (etapa 005)](#rotinas-reutilizáveis-etapa-005)
 - [Lendo setores do disco (etapa 007)](#lendo-setores-do-disco-etapa-007)
+- [Modo protegido de 32 bits (etapa 008)](#modo-protegido-de-32-bits-etapa-008)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Licença](#licença)
 
@@ -29,10 +30,11 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86 (modo real,
 |-------|---------|-----------|----------|
 | 001 | `Boot_001/boot001.asm` | Boot sector mínimo: um loop infinito (`jmp loop`), preenchimento com zeros e assinatura `0xAA55`. A BIOS reconhece o disco como inicializável e a máquina fica parada. | Concluída |
 | 002 | `Boot_002/boot002.asm` | Escreve **`Unimarix v0.1`** na tela, um caractere por vez, usando o serviço de teletipo da BIOS (`int 0x10`, `AH = 0x0E`). | Concluída |
-| 003 | `Boot_003/boot003.asm` | Leitura de dados da memória: com `[org 0x7c00]`, lê o byte do rótulo `segredo` (`db "A"`) com `mov al, [segredo]` e o imprime. Na tela aparece **`UA`**: o `A` vem do `segredo`, e o `U` vem de uma chamada a `int 0x10` feita antes de definir `AL` (ver [Limitações conhecidas](#limitações-conhecidas)). | Concluída, com ressalva |
+| 003 | `Boot_003/boot003.asm` | Leitura de dados da memória: com `[org 0x7c00]`, lê o byte do rótulo `segredo` (`db "A"`) com `mov al, [segredo]` e o imprime. Na tela aparece **`A`**. | Concluída |
 | 004 | `Boot_004/boot004.asm` | Uso da pilha: posiciona `BP`/`SP` em `0x8000`, empilha `'A'`, `'B'` e `'C'` com `push` e depois desempilha com `pop`, imprimindo cada valor. Na tela aparece **`CBA`**, a ordem inversa da que foi empilhada. | Concluída |
-| 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, chama `imprime` com `call` para escrever três mensagens e tenta mostrar o valor `0xCAFE` em hexadecimal. Hoje as mensagens saem emendadas na mesma linha e o valor hexadecimal não aparece (ver [Limitações conhecidas](#limitações-conhecidas)). | Em andamento |
+| 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, escreve três mensagens com `call imprime`, uma por linha (`call imprime_quebra`), e mostra o valor `0xCAFE` com `call imprime_hexa`. | Concluída |
 | 007 | `Boot_007/boot007.asm` | Leitura de disco: guarda a unidade de boot que a BIOS entrega em `DL`, usa a rotina `lerDisco` para carregar os setores 2 e 3 dessa unidade no endereço `0x9000` e imprime, em hexadecimal, a primeira word de cada setor. Os dois setores são gravados no próprio `.asm`, logo depois da assinatura. Na tela aparecem **`0xDADA`** e **`0xFACE`**, em linhas separadas. | Concluída |
+| 008 | `Boot_008/boot008.asm` | Passagem para o modo protegido (32 bits): imprime uma mensagem ainda em modo real com `imprime` (BIOS), chama `mudar_para_modo_protegido` e, já em 32 bits, imprime uma segunda mensagem com `imprime_mp`, escrevendo direto na memória de vídeo. Na tela aparece `mensagem em modo real (16b)` abaixo de `Booting from Hard Disk...` e `mensagem em modo protegido (32b)` no canto superior esquerdo, por cima do texto da BIOS. | Concluída |
 
 Não há pasta `Boot_006` no repositório: a numeração passa da etapa 005 direto para a 007.
 
@@ -52,19 +54,24 @@ Unimarix/
 │   └── boot005.asm         # usa imprime e imprime_hexa via %include
 ├── Boot_007/
 │   └── boot007.asm         # usa imprime, imprime_hexa e lerDisco via %include
+├── Boot_008/
+│   ├── boot008.asm         # entra no modo protegido; usa os três arquivos abaixo e imprime
+│   ├── gdt32.asm           # tabela de segmentos (GDT)
+│   ├── modo32.asm          # rotina mudar_para_modo_protegido
+│   └── imprime32.asm       # rotina imprime_mp (impressão em 32 bits)
 ├── Imprime_Asm/
 │   └── imprime.asm         # rotinas imprime e imprime_quebra
 ├── Imprime_Hexa_Asm/
 │   └── imprime_hexa.asm    # rotina imprime_hexa (depende de imprime)
 ├── Ler_Disco/
 │   └── ler_disco.asm       # rotina lerDisco (depende de imprime e imprime_hexa)
-├── README.md
-└── SECURITY.md             # texto da licença MIT
+├── LICENSE                 # licença MIT
+└── README.md
 ```
 
-O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 512 bytes nas etapas 001 a 005, 1536 bytes na 007) não são versionados: gere cada um localmente com os comandos das seções abaixo.
+O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 1536 bytes na etapa 007 e 512 bytes nas outras) não são versionados: gere cada um localmente com os comandos das seções abaixo.
 
-As pastas `Imprime_Asm`, `Imprime_Hexa_Asm` e `Ler_Disco` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
+As pastas `Imprime_Asm`, `Imprime_Hexa_Asm` e `Ler_Disco` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector. O mesmo vale para `gdt32.asm`, `modo32.asm` e `imprime32.asm`, que ficam dentro de `Boot_008` porque, por enquanto, só essa etapa os usa.
 
 ## Linux ou Windows: o que muda
 
@@ -326,23 +333,64 @@ times 256 dw 0xface   ; setor 3
 
 Assim, o `boot007.bin` fica com 1536 bytes (3 setores), e não 512 como nas etapas anteriores. A BIOS continua carregando só o primeiro setor, e os outros dois são lidos pelo `lerDisco`. A etapa imprime `0xDADA` e `0xFACE`, a primeira word de cada setor lido.
 
+## Modo protegido de 32 bits (etapa 008)
+
+Até a etapa 007, tudo roda em **modo real**: registradores de 16 bits, acesso a só 1 MB de memória e serviços da BIOS por interrupções (`int 0x10`, `int 0x13`). Os sistemas operacionais modernos rodam em **modo protegido**, com registradores de 32 bits (`EAX`, `EBX`...) e acesso a até 4 GB. A etapa 008 faz essa troca.
+
+### A GDT (`gdt32.asm`)
+
+Em modo protegido, os registradores de segmento (`CS`, `DS`, `SS`...) deixam de guardar um endereço. Eles passam a guardar a posição de um **descritor** numa tabela chamada GDT (*Global Descriptor Table*). Cada descritor diz onde o segmento começa, até onde vai e o que se pode fazer nele (executar, ler, escrever).
+
+O Unimarix usa o modelo mais simples, o "plano" (*flat*). A tabela tem três descritores de 8 bytes:
+
+| Descritor | Posição na GDT | Para quê |
+|-----------|----------------|----------|
+| nulo | `0x00` | Obrigatório pelo processador, todo zerado |
+| código | `0x08` (`SEG_CODIGO`) | Base `0`, limite 4 GB, executável e legível |
+| dados | `0x10` (`SEG_DADOS`) | Base `0`, limite 4 GB, legível e gravável |
+
+Como os dois segmentos começam em `0` e cobrem a memória toda, um endereço em 32 bits é simplesmente o endereço físico. Logo depois da tabela vem o `descritor_gdt`, que guarda o tamanho e o endereço da GDT. É ele que a instrução `lgdt` recebe.
+
+### A troca de modo (`modo32.asm`)
+
+A rotina `mudar_para_modo_protegido` faz a troca em quatro passos:
+
+```nasm
+cli                    ; 1. desliga as interrupções (as da BIOS são de 16 bits)
+lgdt [descritor_gdt]   ; 2. informa ao processador onde está a GDT
+
+mov eax, cr0           ; 3. liga o bit 0 do registrador de controle CR0:
+or eax, 0x1            ;    a partir daqui o processador está em modo protegido
+mov cr0, eax
+
+jmp SEG_CODIGO:iniciar_modo_protegido   ; 4. salto "longo"
+```
+
+O salto longo do passo 4 troca o `CS` para o segmento de código da GDT e descarta as instruções que o processador já tinha lido adiantado em modo de 16 bits. Do outro lado do salto, já em `[bits 32]`, a rotina aponta `DS`, `SS`, `ES`, `FS` e `GS` para o segmento de dados, cria uma pilha nova em `0x90000` e chama `INICIAR_MP`, de volta no `boot008.asm`.
+
+### Imprimindo sem a BIOS (`imprime32.asm`)
+
+Em modo protegido não há mais `int 0x10`. A rotina `imprime_mp` escreve direto na **memória de vídeo** do modo texto, que começa no endereço `0xB8000`. Cada posição da tela ocupa 2 bytes:
+
+```
+0xB8000: 'm'   0xB8001: 0x0F (cor: branco no preto)
+0xB8002: 'e'   0xB8003: 0x0F
+...
+```
+
+A rotina recebe a string em `EBX` e grava caractere e cor a partir de `0xB8000`, que é o canto superior esquerdo da tela. Por isso, no QEMU, a mensagem de 32 bits aparece **por cima da primeira linha** do texto da BIOS, enquanto a mensagem de 16 bits aparece mais abaixo, onde o cursor da BIOS estava.
+
 ## Limitações conhecidas
 
-- **Chamada sobrando na etapa 003:** a terceira linha do código (`int 0x10`) roda antes de qualquer `mov al`, então imprime o valor que tiver sobrado em `AL`. No QEMU 8.2.2 (SeaBIOS 1.16.3) esse valor sai como `U`, por isso a tela mostra `UA` em vez de só `A`. Em outra BIOS pode sair outro caractere. Para corrigir, basta apagar essa linha.
-- **Etapa 005 ainda não mostra o resultado pretendido.** Testada no QEMU, a tela mostra as três mensagens emendadas, "Computação" com caracteres estranhos e a terceira mensagem repetida no lugar de `0xCAFE`. São três problemas separados:
-  - **O valor hexadecimal chama a rotina errada.** Depois de `mov dx, 0xCAFE` vem `call imprime`, não `call imprime_hexa`. Como `BX` ainda aponta para `mensagem3`, ela é impressa de novo. Troque para `call imprime_hexa`.
-  - **Falta a quebra de linha.** A rotina `imprime_quebra` existe, mas nunca é chamada. Para cada mensagem sair numa linha, acrescente `call imprime_quebra` depois de cada `call imprime`.
-  - **Acentos não aparecem certo.** O `.asm` está salvo em UTF-8, em que `ç` e `ã` ocupam 2 bytes cada. A BIOS imprime cada byte como um caractere da tabela da placa de vídeo (code page 437), que não é UTF-8. Por isso aparece lixo no lugar dos acentos. Use só caracteres ASCII nas mensagens, por exemplo `Computacao`.
-
-  Com essas três mudanças, testadas no QEMU, aparece cada mensagem numa linha e `0xCAFE` na última.
 - **Caminhos dos `%include` dependem de onde o NASM é executado:** da etapa 005 em diante, monte de dentro da pasta da etapa (ver [Como rodar no Linux](#como-rodar-no-linux)).
-- **Registradores de segmento não inicializados:** nenhuma etapa define `DS`, `ES` ou `SS`. Nas etapas 003, 005 e 007, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`, `mov dx, [0x9000]`) vêm de `DS`. Na etapa 007, os setores lidos do disco são gravados em `ES:BX`. Nas etapas 004, 005 e 007, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS`, `ES` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS`, `ES` e `SS` no início do código.
-- **Espaço:** dos 510 bytes disponíveis no boot sector, a etapa 005 ocupa 212 e a etapa 007 ocupa 221. A partir da 007, o caminho para ter mais espaço é deixar no boot sector só o que for preciso para ler o resto do código do disco.
+- **Registradores de segmento não inicializados no modo real:** nenhuma etapa define `DS`, `ES` ou `SS` enquanto está em 16 bits. Nas etapas 003, 005, 007 e 008, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`, `mov dx, [0x9000]`) vêm de `DS`. Na etapa 007, os setores lidos do disco são gravados em `ES:BX`. Nas etapas 004, 005, 007 e 008, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS`, `ES` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS`, `ES` e `SS` no início do código. A etapa 008 só define esses registradores depois de entrar em 32 bits.
+- **Linha A20 não habilitada:** a etapa 008 entra no modo protegido sem habilitar a linha A20, que controla o acesso à memória acima de 1 MB. Por enquanto não faz diferença, porque todo o código e a pilha (`0x90000`) ficam abaixo de 1 MB. Isso vai importar quando o kernel precisar de memória acima desse limite.
+- **Espaço:** dos 510 bytes disponíveis no boot sector, a etapa 005 ocupa 219, a 007 ocupa 221 e a 008 ocupa 223. Daqui em diante, o caminho para ter mais espaço é deixar no boot sector só o que for preciso para ler o resto do código do disco.
 - **Só testado em emulador:** as imagens foram testadas no QEMU, não em hardware real.
 - **Sem script de build:** cada etapa é montada à mão com o `nasm`.
 
 ## Licença
 
-Distribuído sob a licença MIT. O texto completo está em [`SECURITY.md`](SECURITY.md).
+Distribuído sob a licença MIT. O texto completo está em [`LICENSE`](LICENSE).
 
 ---
