@@ -5,15 +5,18 @@
 
 mov bx, mensagem1
 call imprime
+call imprime_quebra
 
 mov bx, mensagem2
 call imprime
+call imprime_quebra
 
 mov bx, mensagem3
 call imprime
+call imprime_quebra
 
 mov dx, 0xCAFE
-call imprime
+call imprime_hexa
 
 jmp $
 
@@ -21,7 +24,7 @@ jmp $
 %include "../Imprime_Hexa_Asm/imprime_hexa.asm"
 
 mensagem1: db "Bem-vindo(a) ao Unimarix 0.1", 0
-mensagem2: db "Sistema Operacional da Computação 6A", 0
+mensagem2: db "Sistema Operacional da Computacao 6A", 0
 mensagem3: db "Carregando o Kernel do Sistema...", 0
 
 times 510-($-$$) db 0
