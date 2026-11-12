@@ -1,15 +1,15 @@
 mov ah, 0x0e
 
-mov bp, 0x8000 ; endereço onde a pilha começa
-mov sp, bp ; endereço onde a pilha termina, é o mesmo valor de onde começa no inicio do programa
+mov bp, 0x8000 ; endereço da base da pilha
+mov sp, bp ; topo da pilha: no início do programa é igual à base (pilha vazia)
 
 push 'A' ; empilhando valores
-push 'B' ; o sp é empilhado automaticente
+push 'B' ; o sp é decrementado automaticamente a cada push
 push 'C'
 
 ; começando a "desempilhar"
 pop bx ; colocando o valor desempilhado em bx
-mov al, bl ; copiamos os primeiros 0 bits de bx em al
+mov al, bl ; copiamos os 8 bits baixos de bx (bl) em al
 
 int 0x10
 
