@@ -55,23 +55,26 @@ Unimarix/
 ├── Boot_007/
 │   └── boot007.asm         # usa imprime, imprime_hexa e lerDisco via %include
 ├── Boot_008/
-│   ├── boot008.asm         # entra no modo protegido; usa os três arquivos abaixo e imprime
-│   ├── gdt32.asm           # tabela de segmentos (GDT)
-│   ├── modo32.asm          # rotina mudar_para_modo_protegido
-│   └── imprime32.asm       # rotina imprime_mp (impressão em 32 bits)
+│   └── boot008.asm         # entra no modo protegido; usa imprime, gdt32, modo32 e imprime32
+├── Gdt32_Asm/
+│   └── gdt32.asm           # tabela de segmentos (GDT)
 ├── Imprime_Asm/
 │   └── imprime.asm         # rotinas imprime e imprime_quebra
 ├── Imprime_Hexa_Asm/
 │   └── imprime_hexa.asm    # rotina imprime_hexa (depende de imprime)
+├── Imprime32_Asm/
+│   └── imprime32.asm       # rotina imprime_mp (impressão em 32 bits)
 ├── Ler_Disco/
 │   └── ler_disco.asm       # rotina lerDisco (depende de imprime e imprime_hexa)
+├── Modo32_Asm/
+│   └── modo32.asm          # rotina mudar_para_modo_protegido (depende de gdt32)
 ├── LICENSE                 # licença MIT
 └── README.md
 ```
 
 O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 1536 bytes na etapa 007 e 512 bytes nas outras) não são versionados: gere cada um localmente com os comandos das seções abaixo.
 
-As pastas `Imprime_Asm`, `Imprime_Hexa_Asm` e `Ler_Disco` não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector. O mesmo vale para `gdt32.asm`, `modo32.asm` e `imprime32.asm`, que ficam dentro de `Boot_008` porque, por enquanto, só essa etapa os usa.
+As pastas que não começam com `Boot_` (`Imprime_Asm`, `Imprime_Hexa_Asm`, `Ler_Disco`, `Gdt32_Asm`, `Modo32_Asm` e `Imprime32_Asm`) não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
 
 ## Linux ou Windows: o que muda
 
