@@ -1,0 +1,42 @@
+Comandos para montar, compilar e executar o SO com o kernel
+======== ==== ======= ======== = ======== = == === = ======
+
+Adaptado do passo a passo do professor para a estrutura deste repositório:
+- o kernel fica na pasta Kernel/
+- o boot sector que carrega o kernel é o Boot_009/boot009.asm
+
+Todos os comandos partem da raiz do repositório.
+
+1. Entrar na pasta do kernel:
+cd Kernel
+
+2. Compilar o kernel.c com GCC:
+gcc -m32 -fno-pie -ffreestanding -c kernel.c -o kernel.o
+
+3. Gerar o binário para o ponto de entrada do kernel:
+nasm kernel_entrada.asm -f elf -o kernel_entrada.o
+
+4. Ligar ("linkar") o binário do kernel com o ponto de entrada:
+ld -m elf_i386 -o kernel.bin -Ttext 0x1000 kernel_entrada.o kernel.o --oformat binary
+
+O arquivo kernel.bin gerado nesta etapa é um binário criado com código ASM e C.
+O aviso "cannot find entry symbol _start; defaulting to 00001000" pode ser
+ignorado: o kernel começa em 0x1000, onde está o "call main" do kernel_entrada.asm.
+
+5. Entrar na pasta do boot sector:
+cd ../Boot_009
+
+O boot009.asm precisa ser montado de dentro da pasta Boot_009, porque os
+%include usam caminhos relativos (../Imprime_Asm/imprime.asm etc.).
+
+6. Gerar o binário do setor de boot:
+nasm boot009.asm -f bin -o boot009.bin
+
+7. Criar uma imagem "bootavel" de "disco" contendo o boot sector e depois o kernel:
+cat boot009.bin ../Kernel/kernel.bin > imagem-so.bin
+
+8. Testar no emulador QEMU:
+qemu-system-i386 -fda imagem-so.bin
+
+Também funciona dando boot como disco rígido:
+qemu-system-x86_64 -drive format=raw,file=imagem-so.bin
