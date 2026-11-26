@@ -1,8 +1,8 @@
 # Unimarix
 
-Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começando pelo setor de boot em modo real (16 bits) e partindo para o modo protegido (32 bits). Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
+Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começando pelo setor de boot em modo real (16 bits), passando para o modo protegido (32 bits) e chegando a um kernel mínimo escrito em **C**. Projeto acadêmico do curso de Ciência da Computação (UNIMAR), desenvolvido no Ubuntu Linux com NASM, GCC e QEMU. As mesmas ferramentas existem para Windows, e o código é o mesmo nos dois.
 
-> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto, impressão de números em hexadecimal e leitura de setores do disco). Na etapa 008, o boot sector já sai do modo real e entra no modo protegido de 32 bits. Cada pasta `Boot_00X` é uma etapa do estudo.
+> **Estado atual:** fase inicial. O projeto ainda não é um sistema operacional: hoje ele tem uma sequência de *boot sectors* de 512 bytes que a BIOS carrega e executa, mais as primeiras rotinas reutilizáveis (impressão de texto, impressão de números em hexadecimal e leitura de setores do disco). Na etapa 008, o boot sector já sai do modo real e entra no modo protegido de 32 bits. Na etapa 009, ele carrega do disco um kernel escrito em C (pasta `Kernel`) e passa o controle para ele. Cada pasta `Boot_00X` é uma etapa do estudo.
 
 ---
 
@@ -19,6 +19,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começan
 - [Rotinas reutilizáveis (etapa 005)](#rotinas-reutilizáveis-etapa-005)
 - [Lendo setores do disco (etapa 007)](#lendo-setores-do-disco-etapa-007)
 - [Modo protegido de 32 bits (etapa 008)](#modo-protegido-de-32-bits-etapa-008)
+- [Carregando um kernel em C (etapa 009)](#carregando-um-kernel-em-c-etapa-009)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Licença](#licença)
 
@@ -35,6 +36,7 @@ Estudo de desenvolvimento de sistemas operacionais em **Assembly x86**, começan
 | 005 | `Boot_005/boot005.asm` | Primeiras "funções": inclui as rotinas `imprime` e `imprime_hexa` com `%include`, escreve três mensagens com `call imprime`, uma por linha (`call imprime_quebra`), e mostra o valor `0xCAFE` com `call imprime_hexa`. | Concluída |
 | 007 | `Boot_007/boot007.asm` | Leitura de disco: guarda a unidade de boot que a BIOS entrega em `DL`, usa a rotina `lerDisco` para carregar os setores 2 e 3 dessa unidade no endereço `0x9000` e imprime, em hexadecimal, a primeira word de cada setor. Os dois setores são gravados no próprio `.asm`, logo depois da assinatura. Na tela aparecem **`0xDADA`** e **`0xFACE`**, em linhas separadas. | Concluída |
 | 008 | `Boot_008/boot8.asm` | Passagem para o modo protegido (32 bits): imprime uma mensagem ainda em modo real com `imprime` (BIOS), chama `mudar_para_modo_protegido` e, já em 32 bits, imprime uma segunda mensagem com `imprime_mp`, escrevendo direto na memória de vídeo. Na tela aparece `mensagem em modo real (16b)` abaixo de `Booting from Hard Disk...` e `mensagem em modo protegido (32b)` no canto superior esquerdo, por cima do texto da BIOS. | Concluída |
+| 009 | `Boot_009/boot009.asm` + `Kernel/` | Carrega o kernel: guarda a unidade de boot, lê 17 setores do disco para o endereço `0x1000` com `lerDisco`, entra no modo protegido e faz `call 0x1000`. O kernel, escrito em C, limpa a tela e escreve direto na memória de vídeo. Na tela aparecem **`Oi teste`** e **`Em vermelho agora`** (em vermelho) na primeira linha e um **`X`** vermelho sobre fundo cinza no meio da tela. | Concluída |
 
 Não há pasta `Boot_006` no repositório: a numeração passa da etapa 005 direto para a 007.
 
@@ -56,8 +58,16 @@ Unimarix/
 │   └── boot007.asm         # usa imprime, imprime_hexa e lerDisco via %include
 ├── Boot_008/
 │   └── boot8.asm           # entra no modo protegido; usa imprime, gdt32, modo32 e imprime32
+├── Boot_009/
+│   └── boot009.asm         # carrega o kernel do disco e chama ele em 32 bits
 ├── Gdt32_Asm/
 │   └── gdt32.asm           # tabela de segmentos (GDT)
+├── Kernel/
+│   ├── kernel.c            # kernel em C com o "protodriver" de vídeo
+│   ├── kernel_entrada.asm  # ponto de entrada: chama main()
+│   ├── stdbool.h           # bool, true, false
+│   ├── stddef.h            # size_t, NULL
+│   └── stdint.h            # uint8_t, uint16_t...
 ├── Imprime_Asm/
 │   └── imprime.asm         # rotinas imprime e imprime_quebra
 ├── Imprime_Hexa_Asm/
@@ -72,9 +82,9 @@ Unimarix/
 └── SECURITY.md             # texto da licença MIT
 ```
 
-O repositório guarda só o código-fonte. Os `.bin` (imagens de disco: 1536 bytes na etapa 007 e 512 bytes nas outras) não são versionados: gere cada um localmente com os comandos das seções abaixo.
+O repositório guarda só o código-fonte. Os `.bin` e `.o` (imagens de disco: 1536 bytes na etapa 007, cerca de 8,5 KB na etapa 009 e 512 bytes nas outras) não são versionados: gere cada um localmente com os comandos das seções abaixo.
 
-As pastas que não começam com `Boot_` (`Imprime_Asm`, `Imprime_Hexa_Asm`, `Ler_Disco`, `Gdt32_Asm`, `Modo32_Asm` e `Imprime32_Asm`) não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector.
+As pastas que não começam com `Boot_` (`Imprime_Asm`, `Imprime_Hexa_Asm`, `Ler_Disco`, `Gdt32_Asm`, `Modo32_Asm` e `Imprime32_Asm`) não são boot sectors: são trechos de código que não rodam sozinhos e servem para ser incluídos dentro de um boot sector. A pasta `Kernel` também não é um boot sector, mas funciona de outro jeito: ela não é incluída com `%include`, e sim compilada à parte e gravada no disco logo depois do boot sector (ver [etapa 009](#carregando-um-kernel-em-c-etapa-009)).
 
 ## Linux ou Windows: o que muda
 
@@ -89,17 +99,24 @@ Ferramentas usadas:
 
 - [NASM](https://www.nasm.us/), para montar o código Assembly
 - [QEMU](https://www.qemu.org/), para emular um PC x86 e dar boot na imagem
+- [GCC](https://gcc.gnu.org/) e o `ld` (do pacote binutils), para compilar e ligar o kernel em C (só na etapa 009)
 
 > O `-f bin` usado nos comandos abaixo é obrigatório: a BIOS executa o setor direto como código de máquina, então o arquivo não pode ter nenhum formato de executável (ELF no Linux, PE/`.exe` no Windows) em volta.
 
 ## Como rodar no Linux
 
-Testado no Ubuntu com NASM 2.16.01 e QEMU 8.2.2.
+Testado no Ubuntu com NASM 2.16.01, GCC 13.3.0 e QEMU 8.2.2.
 
 **1. Instalar as ferramentas:**
 
 ```bash
 sudo apt install nasm qemu-system-x86
+```
+
+Para a etapa 009 também é preciso o GCC e o `ld`:
+
+```bash
+sudo apt install gcc binutils
 ```
 
 **2. Montar e executar**, na raiz do repositório. O exemplo usa a etapa 002, e as etapas 001 a 004 seguem o mesmo padrão:
@@ -122,9 +139,31 @@ nasm -f bin boot005.asm -o boot005.bin
 qemu-system-x86_64 -drive format=raw,file=boot005.bin
 ```
 
+**Etapa 009: compile o kernel antes.** A imagem de disco é o boot sector seguido do kernel, então são duas partes. Na raiz do repositório:
+
+```bash
+# 1. Compilar e ligar o kernel
+cd Kernel
+gcc -m32 -fno-pie -ffreestanding -c kernel.c -o kernel.o
+nasm kernel_entrada.asm -f elf -o kernel_entrada.o
+ld -m elf_i386 -o kernel.bin -Ttext 0x1000 kernel_entrada.o kernel.o --oformat binary
+
+# 2. Montar o boot sector e juntar os dois numa imagem só
+cd ../Boot_009
+nasm -f bin boot009.asm -o boot009.bin
+cat boot009.bin ../Kernel/kernel.bin > imagem-so.bin
+
+# 3. Dar boot
+qemu-system-x86_64 -drive format=raw,file=imagem-so.bin
+```
+
+O `ld` mostra o aviso `cannot find entry symbol _start; defaulting to 00001000`. Pode ignorar: o kernel começa em `0x1000` de qualquer jeito, e é ali que está o `call main` do `kernel_entrada.asm`. A imagem também dá boot como disquete, com `qemu-system-i386 -fda imagem-so.bin`.
+
 ## Como rodar no Windows
 
 > Os passos desta seção ainda não foram testados no Windows. Os comandos e o resultado esperado são os mesmos da seção do Linux.
+>
+> **Etapa 009:** para compilar o kernel, use a opção B (WSL). No Windows, o GCC (MinGW) gera arquivos no formato do Windows (PE/COFF), e o `ld -m elf_i386 ... --oformat binary` usado aqui espera arquivos ELF.
 
 Há dois caminhos: instalar as ferramentas direto no Windows (opção A) ou usar o Ubuntu dentro do Windows pelo WSL (opção B).
 
@@ -383,14 +422,81 @@ Em modo protegido não há mais `int 0x10`. A rotina `imprime_mp` escreve direto
 
 A rotina recebe a string em `EBX` e grava caractere e cor a partir de `0xB8000`, que é o canto superior esquerdo da tela. Por isso, no QEMU, a mensagem de 32 bits aparece **por cima da primeira linha** do texto da BIOS, enquanto a mensagem de 16 bits aparece mais abaixo, onde o cursor da BIOS estava.
 
+## Carregando um kernel em C (etapa 009)
+
+Até a etapa 008, todo o código cabia nos 512 bytes do boot sector. A etapa 009 separa as coisas: o boot sector fica só com o trabalho de **preparar a máquina e carregar o resto**, e o resto é um **kernel** escrito em C, que fica gravado no disco logo depois dele.
+
+### A imagem de disco
+
+```
+setor 1        setores 2 a 18
+┌────────────┬──────────────────────────────┐
+│ boot009.bin│ kernel.bin                   │  = imagem-so.bin
+│ 512 bytes  │ (kernel_entrada.asm + kernel.c)
+└────────────┴──────────────────────────────┘
+```
+
+A BIOS carrega só o primeiro setor. O resto é responsabilidade do boot sector, que faz quatro coisas, nesta ordem:
+
+1. **Guarda a unidade de boot** (`mov [DRIVE_BOOT], dl`), como na etapa 007.
+2. **Lê o kernel do disco** com a rotina `carregar_kernel`: chama `lerDisco` pedindo 17 setores (`DH = 17`), a partir do setor 2, para o endereço `0x1000` (`ENDERECO_KERNEL`). Tudo isso ainda em 16 bits, porque `lerDisco` usa o `int 0x13` da BIOS, que não existe em modo protegido.
+3. **Entra no modo protegido** com `mudar_para_modo_protegido`, igual à etapa 008.
+4. **Chama o kernel**: em `INICIAR_MP`, já em 32 bits, imprime uma mensagem com `imprime_mp` e faz `call ENDERECO_KERNEL`.
+
+### O ponto de entrada (`kernel_entrada.asm`)
+
+O boot sector salta para o **primeiro byte** em `0x1000`, mas o compilador C não garante que a função `main` fique logo no começo do binário. Por isso, o primeiro código do `kernel.bin` é um trecho pequeno em Assembly:
+
+```nasm
+[bits 32]
+[extern main]   ; main está em outro arquivo (kernel.c)
+call main
+jmp $           ; se main retornar, a CPU fica parada aqui
+```
+
+Ele é montado com `-f elf` (e não `-f bin`), para que o `ld` consiga ligar o `call main` com a função `main` do `kernel.c`. Na hora de ligar, a ordem dos arquivos importa: `kernel_entrada.o` vem antes de `kernel.o`, para ficar no início do binário.
+
+### As opções de compilação
+
+| Opção | Para quê |
+|-------|----------|
+| `-m32` | Gera código de 32 bits, o modo em que o processador está quando o kernel começa |
+| `-ffreestanding` | Avisa o GCC que não existe sistema operacional nem biblioteca padrão por baixo (sem `printf`, sem `malloc`) |
+| `-fno-pie` | Gera código para um endereço fixo, em vez de código que pode ser carregado em qualquer lugar |
+| `-Ttext 0x1000` (`ld`) | Diz ao `ld` que o código vai rodar a partir de `0x1000`, onde o boot sector coloca o kernel. Tem o mesmo papel do `[org 0x7c00]` do boot sector |
+| `--oformat binary` (`ld`) | Gera binário puro, sem cabeçalho ELF, pelo mesmo motivo do `-f bin` do NASM |
+
+Como não há biblioteca padrão, os cabeçalhos `stdbool.h`, `stddef.h` e `stdint.h` ficam na própria pasta `Kernel`. O `kernel.c` os inclui com aspas (`#include "stdint.h"`), então o GCC procura primeiro na pasta do arquivo. Eles só definem tipos (`bool`, `size_t`, `uint8_t`, `uint16_t`) e não geram código.
+
+### O "protodriver" de vídeo (`kernel.c`)
+
+O kernel usa a mesma ideia do `imprime_mp`: escreve direto na memória de vídeo em `0xB8000`, com 2 bytes por posição da tela. Agora isso é feito em C, com um ponteiro:
+
+```c
+uint16_t* terminal_buffer = (uint16_t*) 0xB8000;
+```
+
+Cada `uint16_t` é uma posição da tela: o byte baixo é o caractere e o byte alto é a cor. A cor, por sua vez, tem 4 bits para o texto e 4 para o fundo (`fg | bg << 4`). A posição na tela é calculada por `y * 80 + x`, já que cada linha tem 80 colunas.
+
+| Função | O que faz |
+|--------|-----------|
+| `terminal_initialize()` | Preenche as 25 × 80 posições com espaço em cinza sobre preto (limpa a tela) e volta o cursor para o início |
+| `terminal_setcolor(cor)` | Troca a cor usada daqui em diante |
+| `terminal_putentryat(c, cor, x, y)` | Escreve um caractere numa posição específica |
+| `terminal_putchar(c)` | Escreve um caractere na posição atual e avança uma coluna (e uma linha, ao chegar na coluna 80) |
+| `terminal_writestring(str)` | Escreve uma string terminada em `0` a partir da posição atual |
+
+O `main` limpa a tela, escreve `Oi teste`, troca a cor para vermelho, escreve `Em vermelho agora` logo em seguida (não há tratamento de `\n`, então fica na mesma linha) e coloca um `X` vermelho sobre cinza na coluna 40, linha 12. A mensagem de 32 bits do boot sector chega a ser escrita, mas some quando o kernel limpa a tela.
+
 ## Limitações conhecidas
 
 - **Caminhos dos `%include` dependem de onde o NASM é executado:** da etapa 005 em diante, monte de dentro da pasta da etapa (ver [Como rodar no Linux](#como-rodar-no-linux)).
-- **Registradores de segmento não inicializados no modo real:** nenhuma etapa define `DS`, `ES` ou `SS` enquanto está em 16 bits. Nas etapas 003, 005, 007 e 008, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`, `mov dx, [0x9000]`) vêm de `DS`. Na etapa 007, os setores lidos do disco são gravados em `ES:BX`. Nas etapas 004, 005, 007 e 008, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS`, `ES` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS`, `ES` e `SS` no início do código. A etapa 008 só define esses registradores depois de entrar em 32 bits.
+- **Registradores de segmento não inicializados no modo real:** nenhuma etapa define `DS`, `ES` ou `SS` enquanto está em 16 bits. Nas etapas 003, 005, 007, 008 e 009, os dados lidos da memória (`mov al, [segredo]`, `mov al, [bx]`, `mov dx, [0x9000]`) vêm de `DS`. Nas etapas 007 e 009, os setores lidos do disco são gravados em `ES:BX`. Nas etapas 004, 005, 007, 008 e 009, a pilha (usada por `push`, `pop`, `call` e `ret`) fica em `SS:SP`. Tudo funciona no QEMU porque a BIOS deixa `DS`, `ES` e `SS` com valores que servem, mas isso não é garantido. O mais seguro é zerar `DS`, `ES` e `SS` no início do código. As etapas 008 e 009 só definem esses registradores depois de entrar em 32 bits.
 - **Linha A20 não habilitada:** a etapa 008 entra no modo protegido sem habilitar a linha A20, que controla o acesso à memória acima de 1 MB. Por enquanto não faz diferença, porque todo o código e a pilha (`0x90000`) ficam abaixo de 1 MB. Isso vai importar quando o kernel precisar de memória acima desse limite.
-- **Espaço:** dos 510 bytes disponíveis no boot sector, a etapa 005 ocupa 219, a 007 ocupa 221 e a 008 ocupa 223. Daqui em diante, o caminho para ter mais espaço é deixar no boot sector só o que for preciso para ler o resto do código do disco.
+- **Espaço no boot sector:** dos 510 bytes disponíveis, a etapa 005 ocupa 219, a 007 ocupa 221, a 008 ocupa 223 e a 009 ocupa 461. A partir da etapa 009, o código novo vai para o kernel, que não tem esse limite.
+- **Tamanho do kernel:** o boot sector lê 17 setores (8704 bytes) para `0x1000`. Hoje o `kernel.bin` tem 8196 bytes. O tamanho não cresce aos poucos: o `ld` alinha as seções do binário em blocos de 4 KB, então o arquivo pode pular de uma vez para cerca de 12 KB. Se o kernel passar de 17 setores, o final dele não é carregado e o sistema trava sem mensagem de erro. Nesse caso, é preciso aumentar o `mov dh, 17` do `boot009.asm`.
 - **Só testado em emulador:** as imagens foram testadas no QEMU, não em hardware real.
-- **Sem script de build:** cada etapa é montada à mão com o `nasm`.
+- **Sem script de build:** cada etapa é montada à mão com o `nasm` e, na etapa 009, também com o `gcc` e o `ld`.
 
 ## Licença
 
