@@ -145,12 +145,12 @@ void terminal_write(const char* data, size_t size)
 // quando encontra um '\n', volta para a coluna 0 e desce uma linha.
 void terminal_writestring(const char* data)
 {
-	for(size_t i = 0; data[i] != '\0'; i++){
+	for (size_t i = 0; data[i] != '\0'; i++) {
 		if (data[i] == '\n') {
 			terminal_column = 0;
 			if (++terminal_row == VGA_HEIGHT)
 				terminal_row = 0;
-		}else {
+		} else {
 			terminal_putchar(data[i]);
 		}
 	}
@@ -204,7 +204,7 @@ void main() {
 
    // 1. terminal_writestring() com quebra de linha
    terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
-      terminal_writestring("\n Linha 1\n Linha 2\n\n Linha 4 (a linha 3 ficou vazia)");
+   terminal_writestring("\n Linha 1\n Linha 2\n\n Linha 4 (a linha 3 ficou vazia)");
 
    // 2. terminal_writestring_location()
    terminal_writestring_location(30, 2, "Texto na coluna 30, linha 2", vga_entry_color(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
@@ -215,5 +215,5 @@ void main() {
    terminal_writestring_centered(9, "Centro", vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_BROWN));
 
    // 4. terminal_write_border()
-    terminal_write_border('#');
+   terminal_write_border('#');
 }
