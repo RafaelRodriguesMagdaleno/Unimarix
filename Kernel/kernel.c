@@ -135,18 +135,26 @@ void terminal_write(const char* data, size_t size)
 		terminal_putchar(data[i]);
 }
 
-// imprime a string apontada pelo parâmetro "data" na linha e coluna atual 
-// (variáveis globais terminal_row e terminal_column, respectivamente).
-void terminal_writestring(const char* data) 
-{
-	terminal_write(data, strlen(data));
-}
-
 /*
  * INCLUA NESTE PONTO AS FUNÇÕES IMPLEMENTADAS NO SEU TRABALHO
  *
  */
 
+// imprime a string apontada pelo parâmetro "data" na linha e coluna atual 
+// (variáveis globais terminal_row e terminal_column, respectivamente).
+// quando encontra um '\n', volta para a coluna 0 e desce uma linha.
+void terminal_writestring(const char* data)
+{
+	for(size_t i = 0; data[i] != '\0'; i++){
+		if (data[i] == '\n') {
+			terminal_column = 0;
+			if (++terminal_row == VGA_HEIGHT)
+				terminal_row = 0;
+		}else {
+			terminal_putchar(data[i]);
+		}
+	}
+}
 
 
 
@@ -164,4 +172,8 @@ void main() {
    terminal_putentryat('X', vga_entry_color(VGA_COLOR_RED, VGA_COLOR_LIGHT_GREY), 40, 12);
    
    // INCLUA AQUI AS CHAMADAS PARA TESTE DAS FUNÇÕES IMPLEMENTADAS NO SEU TRABALHO
+
+   // 1. terminal_writestring() com quebra de linha
+   terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
+   terminal_writestring("\nLinha 1\nLinha 2\n\nLinha 4 (a linha 3 ficou vazia)");
 }
