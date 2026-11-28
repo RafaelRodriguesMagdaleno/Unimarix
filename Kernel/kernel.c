@@ -156,6 +156,14 @@ void terminal_writestring(const char* data)
 	}
 }
 
+// imprime a string apontada por "text" nas coordenadas x (coluna) e y (linha),
+// usando a cor especificada em "color" (criada com a função vga_entry_color).
+void terminal_writestring_location(size_t x, size_t y, const char* text, uint8_t color)
+{
+	for (size_t i = 0; text[i] != '\0'; i++)
+		terminal_putentryat(text[i], color, x + i, y);
+}
+
 
 
 void main() {
@@ -176,4 +184,8 @@ void main() {
    // 1. terminal_writestring() com quebra de linha
    terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
    terminal_writestring("\nLinha 1\nLinha 2\n\nLinha 4 (a linha 3 ficou vazia)");
+
+   // 2. terminal_writestring_location()
+   terminal_writestring_location(30, 2, "Texto na coluna 30, linha 2", vga_entry_color(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
+   terminal_writestring_location(10, 20, "Texto na coluna 10, linha 20", vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
 }
