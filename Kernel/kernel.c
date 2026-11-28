@@ -164,7 +164,13 @@ void terminal_writestring_location(size_t x, size_t y, const char* text, uint8_t
 		terminal_putentryat(text[i], color, x + i, y);
 }
 
-
+// imprime a string apontada por "text" no centro da linha y,
+// usando a cor determinada em "color" (criada com a função vga_entry_color).
+void terminal_writestring_centered(size_t y, const char* text, uint8_t color)
+{
+	size_t x = (VGA_WIDTH - strlen(text)) / 2;
+	terminal_writestring_location(x, y, text, color);
+}
 
 void main() {
     
@@ -188,4 +194,8 @@ void main() {
    // 2. terminal_writestring_location()
    terminal_writestring_location(30, 2, "Texto na coluna 30, linha 2", vga_entry_color(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
    terminal_writestring_location(10, 20, "Texto na coluna 10, linha 20", vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
+
+   // 3. terminal_writestring_centered()
+   terminal_writestring_centered(7, "Centralizado na linha 7", vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLUE));
+   terminal_writestring_centered(9, "Centro", vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_BROWN));
 }
