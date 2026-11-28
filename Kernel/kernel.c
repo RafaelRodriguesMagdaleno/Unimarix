@@ -172,6 +172,21 @@ void terminal_writestring_centered(size_t y, const char* text, uint8_t color)
 	terminal_writestring_location(x, y, text, color);
 }
 
+// imprime uma borda em volta da tela (linhas 0 e 24, colunas 0 e 79)
+// usando o caractere passado em "character", na cor atual do terminal.
+void terminal_write_border(char character)
+{
+	for (size_t x = 0; x < VGA_WIDTH; x++) {
+		terminal_putentryat(character, terminal_color, x, 0);
+		terminal_putentryat(character, terminal_color, x, VGA_HEIGHT - 1);
+	}
+
+	for (size_t y = 0; y < VGA_HEIGHT; y++) {
+		terminal_putentryat(character, terminal_color, 0, y);
+		terminal_putentryat(character, terminal_color, VGA_WIDTH - 1, y);
+	}
+}
+
 void main() {
     
     //char* memoria_de_video = (char *)0xB8000;
@@ -198,4 +213,7 @@ void main() {
    // 3. terminal_writestring_centered()
    terminal_writestring_centered(7, "Centralizado na linha 7", vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLUE));
    terminal_writestring_centered(9, "Centro", vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_BROWN));
+
+   // 4. terminal_write_border()
+    terminal_write_border('#');
 }
