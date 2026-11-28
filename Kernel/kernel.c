@@ -187,6 +187,17 @@ void terminal_write_border(char character)
 	}
 }
 
+// imprime um retângulo preenchido pelo caractere "character", com largura "width"
+// e altura "height", com o canto superior esquerdo nas coordenadas x e y,
+// usando a cor especificada em "color" (criada com a função vga_entry_color).
+void terminal_write_rectangle(size_t x, size_t y, size_t width, size_t height, char character, uint8_t color)
+{
+	for (size_t linha = 0; linha < height; linha++) {
+		for (size_t coluna = 0; coluna < width; coluna++)
+			terminal_putentryat(character, color, x + coluna, y + linha);
+	}
+}
+
 void main() {
     
     //char* memoria_de_video = (char *)0xB8000;
@@ -213,6 +224,9 @@ void main() {
    // 3. terminal_writestring_centered()
    terminal_writestring_centered(7, "Centralizado na linha 7", vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLUE));
    terminal_writestring_centered(9, "Centro", vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_BROWN));
+
+   // 5. terminal_write_rectangle()
+   terminal_write_rectangle(60, 2, 10, 5, '#', vga_entry_color(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
 
    // 4. terminal_write_border()
    terminal_write_border('#');
