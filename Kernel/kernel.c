@@ -204,7 +204,7 @@ void main() {
 
    // 1. terminal_writestring() com quebra de linha
    terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
-   terminal_writestring("\nLinha 1\nLinha 2\n\nLinha 4 (a linha 3 ficou vazia)");
+      terminal_writestring("\n Linha 1\n Linha 2\n\n Linha 4 (a linha 3 ficou vazia)");
 
    // 2. terminal_writestring_location()
    terminal_writestring_location(30, 2, "Texto na coluna 30, linha 2", vga_entry_color(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
